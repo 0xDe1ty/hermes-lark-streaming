@@ -123,6 +123,18 @@ async def test_usage_dedup_and_child_turn_does_not_pollute(controller):
 
 
 @pytest.mark.asyncio
+async def test_usage_effort_tracks_successful_request_and_clears_unknown(controller):
+    await controller.frame("t", "chat", "", reply_to="in", source_id="in")
+    await controller.observe("in", "usage", {"api_request_id": "1", "model": "gpt", "reasoning_effort": "high"})
+    assert controller.turns["t"].session.footer["reasoning_effort"] == "high"
+    await controller.observe("in", "usage", {"api_request_id": "1", "model": "gpt"})
+    assert controller.turns["t"].session.footer["reasoning_effort"] == "high"
+    await controller.observe("in", "usage", {"api_request_id": "2", "model": "other"})
+    assert controller.turns["t"].session.footer["reasoning_effort"] is None
+    await controller.close()
+
+
+@pytest.mark.asyncio
 async def test_stop_and_late_frame_do_not_reopen_card(controller):
     await controller.frame("t", "chat", "partial", reply_to="in", source_id="in")
     await controller.observe("in", "end", {"interrupted": True, "completed": False})

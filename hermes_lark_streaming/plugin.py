@@ -38,6 +38,7 @@ def register(ctx: Any) -> None:
     from .hooks import (
         observe_end,
         observe_reasoning,
+    observe_request,
         observe_start,
         observe_tool_end,
         observe_tool_start,
@@ -72,6 +73,7 @@ def register(ctx: Any) -> None:
         ("on_stream_delta", observe_reasoning),
         ("pre_tool_call", observe_tool_start),
         ("post_tool_call", observe_tool_end),
+        ("pre_api_request", observe_request),
         ("post_api_request", observe_usage),
         ("on_session_end", observe_end),
     ):

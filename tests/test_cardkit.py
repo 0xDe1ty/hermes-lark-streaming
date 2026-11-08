@@ -213,6 +213,10 @@ class TestBuildFooterElements:
         assert "↑" in result[1]["content"]
         assert "↓" in result[1]["content"]
 
+    def test_model_footer_includes_known_effort(self) -> None:
+        result = _build_footer_elements({"model": "gpt-6.1-sol", "reasoning_effort": "high"}, fields=[["model"]])
+        assert result[1]["content"] == "gpt-6.1-sol (high)"
+
     def test_default_footer_has_single_row_with_context(self) -> None:
         result = _build_footer_elements({
             "duration": 5, "prompt_tokens": 20000, "context_length": 80000,

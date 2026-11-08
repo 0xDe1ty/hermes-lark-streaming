@@ -348,6 +348,9 @@ def _render_footer_field(
 
     if name == "model":
         v = data.get("model") or None
+        effort = data.get("reasoning_effort")
+        if v and effort:
+            v = f"{v} ({effort})"
         return v, v
 
     if name == "context":
