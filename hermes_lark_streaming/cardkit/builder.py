@@ -419,6 +419,13 @@ def build_streaming_card_v2(
     return card
 
 
+def _build_memory_note(text: str, element_id: str | None = None) -> dict:
+    element = {"tag": "markdown", "content": text, "text_size": "notation"}
+    if element_id:
+        element["element_id"] = element_id
+    return element
+
+
 def build_complete_card(
     *,
     segments: list[Segment],
@@ -441,7 +448,9 @@ def build_complete_card(
     has_answer = False
 
     for seg in segments:
-        if seg.type == SegmentType.REASONING:
+        if seg.type == SegmentType.MEMORY:
+            elements.append(_build_memory_note(seg.text))
+        elif seg.type == SegmentType.REASONING:
             if seg.text:
                 elements.append(_build_reasoning_panel(
                     seg.text, seg.elapsed_ms, expanded=panel_expanded,

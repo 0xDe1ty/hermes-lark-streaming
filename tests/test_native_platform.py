@@ -393,7 +393,11 @@ async def test_interim_is_rendered_in_card_without_text_bubble(adapter):
 
 
 @pytest.mark.asyncio
-async def test_native_clarify_text_card_keeps_core_reply_resolution(adapter):
+async def test_native_clarify_text_card_keeps_core_reply_resolution(adapter, monkeypatch):
+    # Hermes 0.23 owns the connected interactive-card transport.
+    adapter._client = MagicMock()
+    sender = AsyncMock(return_value=SendResult(success=True, message_id="clarify-card"))
+    monkeypatch.setattr(adapter, "_send_interactive_card", sender)
     from tools.clarify_gateway import _entries, mark_awaiting_text, register, resolve_gateway_clarify
 
     register("clarify", "s", "Which?", ["A", "B"])
@@ -639,3 +643,16 @@ async def test_exhausted_sequence_recovery_uses_host_fallback(adapter, method):
     adapter.cards._client.send_card_to_chat.assert_awaited_once()
     assert "complete answer" in str(adapter.cards._client.send_card_to_chat.call_args)
     assert not adapter.cards.turns
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("accepted", [True, False])
+async def test_memory_status_falls_back_unless_exact_card_accepts(adapter, monkeypatch, accepted):
+    set_session_vars(platform="feishu", chat_id="chat", message_id="incoming", session_key="session")
+    native = AsyncMock(return_value=SendResult(success=True, message_id="native"))
+    monkeypatch.setattr(builtin.FeishuAdapter, "send", native)
+    monkeypatch.setattr(adapter.cards, "memory_recall", AsyncMock(return_value="card" if accepted else None))
+    result = await adapter.send_or_update_status("chat", "lifecycle", "👁 Hindsight — recalled 3 memories")
+    assert result.message_id == ("card" if accepted else "native")
+    assert native.await_count == int(not accepted)
+    adapter.cards.memory_recall.assert_awaited_once_with("incoming", "🧠 Hindsight · 已召回 3 条记忆")
