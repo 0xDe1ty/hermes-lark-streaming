@@ -28,6 +28,13 @@ def _request_key(payload: dict[str, Any]) -> tuple[str, str, str] | None:
 
 def _request_effort(payload: dict[str, Any]) -> str | None:
     request = payload.get("request")
+    if isinstance(request, dict) and "reasoning_effort" in request:
+        effort = request["reasoning_effort"]
+        if isinstance(effort, str) and effort.strip().lower() in {
+            "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra",
+        }:
+            return effort.strip().lower()
+        return None
     body = request.get("body") if isinstance(request, dict) else None
     if not isinstance(body, dict):
         return None

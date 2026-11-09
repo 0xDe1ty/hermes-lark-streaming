@@ -9,6 +9,24 @@ def test_request_effort_uses_wire_value():
     assert _request_effort({"request": {"_truncated": True}}) is None
 
 
+def test_request_effort_prefers_host_wire_field_over_body():
+    # The host's sanitized request metadata also survives a truncated preview.
+    assert _request_effort({
+        "request": {"reasoning_effort": "high", "body": {"reasoning": {"effort": "low"}}}
+    }) == "high"
+    assert _request_effort({
+        "request": {"_truncated": True, "preview": '{"method": ...', "reasoning_effort": "max"}
+    }) == "max"
+    assert _request_effort({"request": {"reasoning_effort": "none"}}) == "none"
+    # An explicit unknown/invalid host value must not fall back to a conflicting body.
+    assert _request_effort({"request": {"reasoning_effort": 3, "body": {"reasoning_effort": "low"}}}) is None
+    assert _request_effort({"request": {"reasoning_effort": "bogus", "body": {"reasoning_effort": "high"}}}) is None
+    # Old-host truncated preview without the field: unchanged None.
+    assert _request_effort({"request": {"_truncated": True}}) is None
+    # Absence stays absence.
+    assert _request_effort({"request": {}}) is None
+
+
 def test_matching_request_ids_keeps_concurrent_turns_separate(monkeypatch):
     from hermes_lark_streaming import hooks
 
