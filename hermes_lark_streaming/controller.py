@@ -117,6 +117,22 @@ class StreamCardController(StreamingController):
                 return None
             return turn.session.card_msg_id
 
+    async def memory_recall(self, source_id: str, text: str) -> str | None:
+        """仅在准确关联的卡片实际接收小字提示后接管原状态消息。"""
+        matches = self.find_source(source_id)
+        if len(matches) != 1:
+            return None
+        _, turn = matches[0]
+        async with turn.lock:
+            session = turn.session
+            if turn.closing or not session.has_card or session.guard.should_skip("memory_recall"):
+                return None
+            session.segment_state.on_memory_recall(text)
+            await session.flush.flush_now(lambda: self._do_flush(session))
+            if session.state.is_terminal or session.segment_state.has_dirty:
+                return None
+            return session.card_msg_id
+
     def _replace_text(self, turn: Turn, text: str) -> None:
         session = turn.session
         if text.startswith(turn.text):

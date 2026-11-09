@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import weakref
 from collections import OrderedDict
 from typing import Any
@@ -156,7 +157,16 @@ class FeishuStreamingAdapter(builtin.FeishuAdapter):
         content: str,
         metadata: dict | None = None,
     ) -> SendResult:
-        # 状态通报保留明确投递目标，不更新无法可靠关联的卡片
+        source_id = get_session_env("HERMES_SESSION_MESSAGE_ID")
+        recalled = re.fullmatch(r"(?:👁️?|🧠) Hindsight — recalled (?:(\d+) memor(?:y|ies)|relevant memory)", content)
+        if status_key == "lifecycle" and source_id and recalled:
+            detail = f"已召回 {recalled.group(1)} 条记忆" if recalled.group(1) else "已召回相关记忆"
+            try:
+                message_id = await self.cards.memory_recall(source_id, f"🧠 Hindsight · {detail}")
+                if message_id:
+                    return SendResult(success=True, message_id=message_id)
+            except Exception:
+                _logger.warning("Memory note failed; using built-in status", exc_info=True)
         return await super().send(chat_id, content, metadata=metadata)
 
     async def interrupt_session_activity(

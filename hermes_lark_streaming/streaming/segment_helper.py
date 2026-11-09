@@ -6,6 +6,7 @@ from typing import Any
 
 from ..cardkit.builder import (
     _LOADING_ELEMENT_ID,
+    _build_memory_note,
     _build_reasoning_panel,
     _build_tool_panel,
     _format_elapsed,
@@ -23,7 +24,7 @@ def estimate_segment_elements(seg: Segment, all_steps: list[ToolDisplayStep]) ->
     """估算单个 segment 新增的卡片元素数."""
     if seg.type == SegmentType.REASONING:
         return 4  # collapsible_panel + plain_text + standard_icon + markdown
-    if seg.type == SegmentType.ANSWER:
+    if seg.type in (SegmentType.ANSWER, SegmentType.MEMORY):
         return 1
     if seg.type == SegmentType.TOOL:
         return estimate_tool_elements(
@@ -81,6 +82,8 @@ def build_add_segment_action(
             element_id=seg.el_id,
             text_element_id=seg.text_el_id,
         )
+    elif seg.type == SegmentType.MEMORY:
+        element = _build_memory_note(seg.text, seg.el_id)
     elif seg.type == SegmentType.ANSWER:
         element = _streaming_element(element_id=seg.el_id, text_size=text_size)
     elif seg.type == SegmentType.TOOL:

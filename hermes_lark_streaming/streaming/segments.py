@@ -10,6 +10,7 @@ class SegmentType(StrEnum):
     REASONING = "reasoning"
     ANSWER = "answer"
     TOOL = "tool"
+    MEMORY = "memory"
 
 
 class Segment:
@@ -60,6 +61,16 @@ class SegmentState:
     def __init__(self) -> None:
         self._counter = 0
         self.segments: list[Segment] = []
+
+    def on_memory_recall(self, text: str) -> Segment:
+        for seg in self.segments:
+            if seg.type == SegmentType.MEMORY and seg.text == text:
+                return seg
+        seg = Segment(SegmentType.MEMORY, f"memory_{self._counter}")
+        self._counter += 1
+        seg.text = text
+        self.segments.append(seg)
+        return seg
 
     def _new_reasoning(self, text: str) -> Segment:
         c = self._counter

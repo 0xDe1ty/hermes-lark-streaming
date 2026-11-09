@@ -380,6 +380,8 @@ class StreamingController:
             for seg in segments:
                 if seg.el_id in new_el_ids:
                     seg.created = True
+                    if seg.type == SegmentType.MEMORY:
+                        seg.dirty = False
                     estimate = new_el_estimates.get(seg.el_id, 0)
                     seg.element_estimate = estimate
                     session.element_count += estimate

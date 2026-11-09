@@ -340,3 +340,17 @@ async def test_sequence_recovery_is_bounded_and_only_handles_conflicts(controlle
     assert error.value.code == code
     assert operation.await_count == attempts
     assert len({c.kwargs["request_id"] for c in operation.await_args_list}) == 1
+
+
+@pytest.mark.asyncio
+async def test_recall_note_is_deduplicated_and_survives_final_card(controller):
+    assert await controller.memory_recall("missing", "🧠 Hindsight · 已召回 3 条记忆") is None
+    await controller.frame("t", "chat", "", reply_to="in", source_id="in")
+    note = "🧠 Hindsight · 已召回 3 条记忆"
+    assert await controller.memory_recall("in", note) == "message"
+    assert await controller.memory_recall("in", note) == "message"
+    await controller.frame("t", "chat", "最终回答", reply_to="in", source_id="in", finalize=True)
+    card = controller._client.cardkit_update.call_args.args[1]
+    notes = [e for e in card["body"]["elements"] if e.get("content") == note]
+    assert len(notes) == 1 and notes[0]["text_size"] == "notation"
+    assert "最终回答" in str(card)
