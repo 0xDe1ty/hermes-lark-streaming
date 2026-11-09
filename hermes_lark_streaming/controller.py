@@ -207,9 +207,12 @@ class StreamCardController(StreamingController):
             elif kind in {"tool_start", "tool_end"}:
                 self._tool_event(turn, kind, payload)
             elif kind == "usage":
-                session.footer["model"] = str(payload.get("response_model") or payload.get("model") or "")
                 request_id = str(payload.get("api_request_id") or "")
-                if not request_id or request_id in turn.usage_ids:
+                if request_id and request_id in turn.usage_ids:
+                    return
+                session.footer["model"] = str(payload.get("response_model") or payload.get("model") or "")
+                session.footer["reasoning_effort"] = payload.get("reasoning_effort")
+                if not request_id:
                     return
                 turn.usage_ids.add(request_id)
                 usage = payload.get("usage") or {}
